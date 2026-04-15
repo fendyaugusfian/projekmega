@@ -47,7 +47,19 @@ button:hover {
 }
 
 input, select, textarea {
-  font-family: inherit;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px;
+  padding: 8px 12px;
+  width: 100%;
+  font-size: 14px;
+  background: #ffffff;
+  color: #111827;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 .counter {
   font-size: 16px;
