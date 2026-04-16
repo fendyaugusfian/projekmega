@@ -21,6 +21,7 @@ const seedExpenses = [{"id":2700000001,"date":"2024-01-05","desc":"Adobe Creativ
 const seedClientMeta = {};
 const seedExpenseCats = null;
 const seedAccent = "";
+const seedResources = null;
 const seedTarget = null;
 const seedAreaRanges = null;
 const seedDurasiRanges = null;
@@ -2467,8 +2468,161 @@ function UpworkPage({projects}) {
   </div>;
 }
 
+const DEFAULT_RESOURCE_TAGS = ["Template","Portfolio","Tools","Referensi","Contract","Lainnya"];
+const RESOURCE_TAG_COLORS = {
+  "Template":  {bg:"#E6F1FB",color:"#185FA5"},
+  "Portfolio": {bg:"#E1F5EE",color:"#0F6E56"},
+  "Tools":     {bg:"#EEEDFE",color:"#534AB7"},
+  "Referensi": {bg:"#FAEEDA",color:"#BA7517"},
+  "Contract":  {bg:"#FBEAF0",color:"#993556"},
+  "Lainnya":   {bg:"#F1EFE8",color:"#5F5E5A"},
+};
+function getResourceTagStyle(tag) {
+  if (RESOURCE_TAG_COLORS[tag]) return RESOURCE_TAG_COLORS[tag];
+  let hash=0; for(let i=0;i<tag.length;i++) hash=(hash*31+tag.charCodeAt(i))>>>0;
+  const palettes=Object.values(RESOURCE_TAG_COLORS);
+  return palettes[hash%palettes.length];
+}
+function loadResources() {
+  try { const s=window._resourcesData; if(s){const p=JSON.parse(s);if(Array.isArray(p))return p;} } catch(e){}
+  return seedResources ? [...seedResources] : [];
+}
+function saveResources(data) { window._resourcesData=JSON.stringify(data); }
+
 function ResourcesPage() {
-  return <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:300,color:"var(--color-text-secondary)",gap:8}}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span style={{fontSize:15,fontWeight:500}}>Resources</span><span style={{fontSize:13}}>Halaman ini masih kosong</span></div>;
+  const [resources, setResources] = useState(loadResources);
+  const [activeTag, setActiveTag] = useState("Semua");
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [confirmId, setConfirmId] = useState(null);
+  const emptyForm = {name:"", url:"", tag:DEFAULT_RESOURCE_TAGS[0]};
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(()=>{ saveResources(resources); },[resources]);
+
+  const allTags = [...new Set([...DEFAULT_RESOURCE_TAGS, ...resources.map(r=>r.tag).filter(Boolean)])];
+  const filtered = activeTag==="Semua" ? resources : resources.filter(r=>r.tag===activeTag);
+
+  const openAdd = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
+  const openEdit = (r) => { setEditingId(r.id); setForm({name:r.name,url:r.url,tag:r.tag}); setShowForm(true); };
+  const cancelForm = () => { setShowForm(false); setEditingId(null); setForm(emptyForm); };
+
+  const saveForm = () => {
+    if (!form.name.trim()||!form.url.trim()) return;
+    let url = form.url.trim();
+    if (url && !/^https?:\/\//i.test(url)) url = "https://"+url;
+    if (editingId) {
+      setResources(rs=>rs.map(r=>r.id===editingId?{...r,...form,url}:r));
+    } else {
+      setResources(rs=>[...rs,{id:Date.now(),...form,url}]);
+    }
+    cancelForm();
+  };
+
+  const deleteResource = () => { setResources(rs=>rs.filter(r=>r.id!==confirmId)); setConfirmId(null); };
+
+  const getHostname = (url) => { try { return new URL(url).hostname.replace("www.",""); } catch(e){ return url; } };
+
+  const inp = {width:"100%",boxSizing:"border-box",fontSize:13,padding:"7px 10px",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,background:"var(--color-background-primary)",color:"var(--color-text-primary)"};
+  const labelSt = {fontSize:12,color:"var(--color-text-secondary)",display:"block",marginBottom:3};
+  const selectSt = {fontSize:12,padding:"5px 8px",border:"0.5px solid var(--color-border-secondary)",borderRadius:6,background:"var(--color-background-primary)",color:"var(--color-text-primary)",cursor:"pointer"};
+
+  return <div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div style={{fontWeight:500,fontSize:20}}>Resources</div>
+      <button onClick={openAdd} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"#111",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:500}}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tambah
+      </button>
+    </div>
+
+    {/* Add / Edit Form */}
+    {showForm&&<div style={{border:"2px solid #000",borderRadius:12,background:"var(--color-background-primary)",padding:"16px 20px",marginBottom:20,boxShadow:"0 2px 8px rgba(0,0,0,0.07)"}}>
+      <div style={{fontWeight:500,fontSize:14,marginBottom:14}}>{editingId?"Edit Resource":"Tambah Resource"}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 160px",gap:12,marginBottom:14}}>
+        <div>
+          <label style={labelSt}>Nama *</label>
+          <input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Modern Interior Deck" style={inp}/>
+        </div>
+        <div>
+          <label style={labelSt}>URL *</label>
+          <input value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))} placeholder="https://canva.com/..." style={inp} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();saveForm();}}}/>
+        </div>
+        <div>
+          <label style={labelSt}>Tag</label>
+          <select value={form.tag} onChange={e=>setForm(f=>({...f,tag:e.target.value}))} style={{...inp,cursor:"pointer"}}>
+            {allTags.map(t=><option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button onClick={cancelForm} style={{fontSize:13,padding:"6px 16px"}}>Batal</button>
+        <button onClick={saveForm} disabled={!form.name.trim()||!form.url.trim()} style={{fontSize:13,padding:"6px 18px",background:(!form.name.trim()||!form.url.trim())?"var(--color-background-secondary)":"#111",color:(!form.name.trim()||!form.url.trim())?"var(--color-text-secondary)":"#fff",borderColor:"transparent",borderRadius:8,cursor:(!form.name.trim()||!form.url.trim())?"not-allowed":"pointer"}}>
+          {editingId?"Simpan":"Tambah"}
+        </button>
+      </div>
+    </div>}
+
+    {/* Tag filter pills */}
+    <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:16,alignItems:"center"}}>
+      {["Semua",...allTags].map(t=>{
+        const active = activeTag===t;
+        const cfg = t==="Semua" ? null : getResourceTagStyle(t);
+        return <button key={t} onClick={()=>setActiveTag(t)} style={{
+          fontSize:12,padding:"4px 14px",borderRadius:20,border:"0.5px solid",cursor:"pointer",
+          background:active?(t==="Semua"?"#111":cfg.bg):"transparent",
+          color:active?(t==="Semua"?"#fff":cfg.color):"var(--color-text-secondary)",
+          borderColor:active?(t==="Semua"?"#111":cfg.color):"var(--color-border-secondary)",
+          fontWeight:active?500:400,transition:"all 0.15s"
+        }}>{t}{t==="Semua"?` (${resources.length})`:` (${resources.filter(r=>r.tag===t).length})`}</button>;
+      })}
+    </div>
+
+    {/* List */}
+    {resources.length===0
+      ? <div style={{textAlign:"center",padding:"4rem 0",color:"var(--color-text-secondary)",fontSize:14}}>
+          Belum ada resource. Klik "+ Tambah" untuk mulai.
+        </div>
+      : filtered.length===0
+        ? <div style={{textAlign:"center",padding:"3rem 0",color:"var(--color-text-secondary)",fontSize:14}}>
+            Tidak ada resource dengan tag ini.
+          </div>
+        : <div style={{border:"2px solid #000",borderRadius:12,overflow:"clip",boxShadow:"0 2px 8px rgba(0,0,0,0.07)"}}>
+            {filtered.map((r,i)=>{
+              const cfg = getResourceTagStyle(r.tag);
+              const isLast = i===filtered.length-1;
+              return <div key={r.id} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:isLast?"none":"0.5px solid var(--color-border-tertiary)",background:i%2===0?"transparent":"var(--color-background-secondary)"}}>
+                {/* Icon */}
+                <div style={{width:32,height:32,borderRadius:8,background:cfg.bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cfg.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                </div>
+                {/* Info */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                    <span style={{fontSize:13,fontWeight:500,color:"var(--color-text-primary)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</span>
+                    <span style={{fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:20,background:cfg.bg,color:cfg.color,flexShrink:0}}>{r.tag}</span>
+                  </div>
+                  <span style={{fontSize:11,color:"var(--color-text-secondary)"}}>{getHostname(r.url)}</span>
+                </div>
+                {/* Actions */}
+                <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,padding:"5px 12px",borderRadius:6,border:"0.5px solid var(--color-border-secondary)",color:"var(--color-text-primary)",textDecoration:"none",background:"var(--color-background-primary)"}}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    Buka
+                  </a>
+                  <button onClick={()=>openEdit(r)} style={{padding:"5px 6px",border:"none",background:"transparent",cursor:"pointer",color:"var(--color-text-secondary)"}}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={()=>setConfirmId(r.id)} style={{padding:"5px 6px",border:"none",background:"transparent",cursor:"pointer",color:"#ef4444"}}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </div>
+              </div>;
+            })}
+          </div>
+    }
+    {confirmId!=null&&<ConfirmModal message="Hapus resource ini?" onConfirm={deleteResource} onCancel={()=>setConfirmId(null)}/>}
+  </div>;
 }
 
 function ProjectCard({proj,index,allProjects,onEdit,onDelete}) {
@@ -3495,8 +3649,81 @@ function ExpensesPage({projects}) {
   const thStyle = {textAlign:"left",padding:"9px 14px",fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em",color:"var(--color-text-secondary)",borderBottom:"0.5px solid var(--color-border-tertiary)",background:"var(--color-background-secondary)"};
   const tdStyle = {padding:"10px 14px",borderBottom:"0.5px solid var(--color-border-tertiary)",fontSize:13,color:"var(--color-text-primary)",verticalAlign:"middle"};
 
+  const downloadExpensesPDF = () => {
+    const sorted = [...filtered].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+    const tabLabel = mainTab==="alltime" ? "All Time" : filterYear!=="All" ? `Tahun ${filterYear}` : "Semua Tahun";
+    const monthLabel = filterMonth!=="All" ? ` — ${filterMonth}` : "";
+    const catLabel = filterCat!=="All" ? ` — ${filterCat}` : "";
+    const rows = sorted.map((e,i)=>{
+      const cfg = getCatStyle(categories, e.category);
+      return `<tr style="background:${i%2===0?"#fff":"#f9fafb"}">
+        <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;white-space:nowrap;color:#6b7280;font-size:13px">${e.date||"—"}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-weight:500;font-size:13px">${e.desc||"—"}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-size:13px"><span style="display:inline-block;font-size:11px;font-weight:500;border-radius:20px;padding:2px 9px;background:${cfg.bg};color:${cfg.color}">${e.category}</span></td>
+        <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;text-align:right;color:#dc2626;font-weight:500;white-space:nowrap;font-size:13px">${e.amount?`Rp ${e.amount}`:"—"}</td>
+        <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:12px">${e.notes||"—"}</td>
+      </tr>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Expenses — ${tabLabel}</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;padding:32px 40px;font-size:13px}
+    @media print{body{padding:16px 20px}button{display:none!important}}</style></head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div>
+        <div style="font-size:22px;font-weight:600;margin-bottom:4px">Laporan Expenses</div>
+        <div style="font-size:13px;color:#6b7280">${tabLabel}${monthLabel}${catLabel}</div>
+      </div>
+      <button onclick="window.print()" style="padding:8px 18px;background:#111;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500">🖨 Print / Save PDF</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px">
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px">
+        <div style="font-size:11px;color:#166534;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px">Total Income (Nett)</div>
+        <div style="font-size:20px;font-weight:500;color:#15803d">Rp ${fmtFull(totalNettTab)}</div>
+        <div style="font-size:11px;color:#16a34a;margin-top:3px">${mainTab==="pertahun"&&filterYear!=="All"?`proyek ${filterYear}`:"semua proyek"}</div>
+      </div>
+      <div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px 16px">
+        <div style="font-size:11px;color:#991b1b;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px">Total Expenses</div>
+        <div style="font-size:20px;font-weight:500;color:#dc2626">Rp ${fmtFull(totalExpensesTab)}</div>
+        <div style="font-size:11px;color:#b91c1c;margin-top:3px">${mainTab==="pertahun"&&filterYear!=="All"?`tahun ${filterYear}`:"semua waktu"}</div>
+      </div>
+      <div style="background:${netProfit>=0?"#eff6ff":"#fef2f2"};border:1.5px solid ${netProfit>=0?"#93c5fd":"#fca5a5"};border-radius:10px;padding:12px 16px">
+        <div style="font-size:11px;color:${netProfit>=0?"#1e40af":"#991b1b"};text-transform:uppercase;letter-spacing:0.06em;font-weight:600;margin-bottom:5px">Net Profit</div>
+        <div style="font-size:20px;font-weight:500;color:${netProfit>=0?"#1d4ed8":"#dc2626"}">Rp ${fmtFull(Math.abs(netProfit))}${netProfit<0?" (minus)":""}</div>
+        <div style="font-size:11px;color:${netProfit>=0?"#3b82f6":"#b91c1c"};margin-top:3px">income – expenses</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:#f9fafb">
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Tanggal</th>
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Deskripsi</th>
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Kategori</th>
+          <th style="text-align:right;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Jumlah (Rp)</th>
+          <th style="text-align:left;padding:9px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Catatan</th>
+        </tr>
+      </thead>
+      <tbody>${rows}
+        <tr>
+          <td colspan="3" style="padding:9px 14px;text-align:right;color:#6b7280;font-size:12px;font-weight:500;border-top:1.5px solid #d1d5db">Total ditampilkan</td>
+          <td style="padding:9px 14px;text-align:right;font-weight:600;color:#dc2626;border-top:1.5px solid #d1d5db;white-space:nowrap">Rp ${fmtFull(totalExpensesFiltered)}</td>
+          <td style="border-top:1.5px solid #d1d5db"></td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:24px;font-size:11px;color:#9ca3af">Dicetak pada: ${new Date().toLocaleDateString("id-ID",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+    </body></html>`;
+    const w = window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+  };
+
   return <div>
-    <div style={{fontWeight:500,fontSize:20,marginBottom:16}}>Expenses</div>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+      <div style={{fontWeight:500,fontSize:20}}>Expenses</div>
+      <button onClick={downloadExpensesPDF} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 14px",background:"#111",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:13,fontWeight:500}}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+      </button>
+    </div>
 
     {/* Tab bar — sama persis seperti Analysis */}
     <div style={{display:"flex",gap:0,marginBottom:20,borderBottom:"0.5px solid var(--color-border-tertiary)"}}>
@@ -4149,6 +4376,8 @@ useEffect(()=>{ applyAccent(window._accentColor||seedAccent||DEFAULT_ACCENT); },
     if (currentAreaRanges) out = replaceLine(out, "seedAreaRanges", currentAreaRanges);
     if (currentDurasiRanges) out = replaceLine(out, "seedDurasiRanges", currentDurasiRanges);
     if (currentRates) out = replaceLine(out, "seedRates", currentRates);
+    const currentResources = (() => { try { const s=window._resourcesData; return s?JSON.parse(s):null; } catch(e){return null;} })();
+    if (currentResources && currentResources.length > 0) out = replaceLine(out, "seedResources", currentResources);
 
     const blob = new Blob([out], {type:"text/plain"});
     const url = URL.createObjectURL(blob);
@@ -4166,3 +4395,4 @@ const content = <div style={{flex:1,padding:"1.5rem",overflowY:"auto",minHeight:
   if (topbar) return <><div style={{display:"flex",flexDirection:"column",height:"100%"}}><Topbar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
   return <><div style={{display:"flex",minHeight:"100vh",alignItems:"flex-start"}}><Sidebar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
 }
+
