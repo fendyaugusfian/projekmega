@@ -3374,7 +3374,7 @@ function DataManagement({ projects, setProjects, tags, setTags, expenses, setExp
 }
 
 
-function SettingsPage({ projects, setProjects, tags, setTags }){
+function SettingsPage({ projects, setProjects, tags, setTags, expenses, setExpenses }){
   const [hex, setHex] = useState(()=>window._accentColor||DEFAULT_ACCENT);
   const [input, setInput] = useState(()=>window._accentColor||DEFAULT_ACCENT);
   const [error, setError] = useState("");
@@ -4614,12 +4614,47 @@ useEffect(()=>{ applyAccent(window._accentColor||seedAccent||DEFAULT_ACCENT); },
     URL.revokeObjectURL(url);
   }
 
-const content = <div style={{flex:1,padding:"1.5rem",overflowY:"auto",minHeight:"100vh"}}>{activePage==="dashboard"?<DashboardPage projects={projects} setProjects={setProjects}/>:activePage==="analysis"?<AnalysisPage projects={projects}/>:activePage==="expenses"?<ExpensesPage projects={projects}/>:activePage==="tabel"?<TabelPage projects={projects}/>:activePage==="client"?<ClientPage projects={projects}/>:activePage==="download"?<DownloadPage projects={projects}/>:activePage==="upwork"?<UpworkPage projects={projects}/>:activePage==="quote"?<QuotePage projects={projects}/>:activePage==="resources"?<ResourcesPage/>:activePage==="settings"?<SettingsPage 
-  projects={projects} 
-  setProjects={setProjects}
-  tags={tags}
-  setTags={setTags}
-/>:projectsPage}</div>;
+const content = (
+  <div
+    style={{
+      flex: 1,
+      padding: "1.5rem",
+      overflowY: "auto",
+      minHeight: "100vh"
+    }}
+  >
+    {activePage === "dashboard" ? (
+      <DashboardPage projects={projects} setProjects={setProjects} />
+    ) : activePage === "analysis" ? (
+      <AnalysisPage projects={projects} />
+    ) : activePage === "expenses" ? (
+      <ExpensesPage projects={projects} />
+    ) : activePage === "tabel" ? (
+      <TabelPage projects={projects} />
+    ) : activePage === "client" ? (
+      <ClientPage projects={projects} />
+    ) : activePage === "download" ? (
+      <DownloadPage projects={projects} />
+    ) : activePage === "upwork" ? (
+      <UpworkPage projects={projects} />
+    ) : activePage === "quote" ? (
+      <QuotePage projects={projects} />
+    ) : activePage === "resources" ? (
+      <ResourcesPage />
+    ) : activePage === "settings" ? (
+      <SettingsPage
+        projects={projects}
+        setProjects={setProjects}
+        tags={tags}
+        setTags={setTags}
+        expenses={expenses}
+        setExpenses={setExpenses}
+      />
+    ) : (
+      projectsPage
+    )}
+  </div>
+);
   const modal = confirmId!=null ? <ConfirmModal message="Hapus proyek ini? Tindakan ini tidak bisa dibatalkan." onConfirm={confirmDelete} onCancel={()=>setConfirmId(null)}/> : null;
   if (topbar) return <><div style={{display:"flex",flexDirection:"column",height:"100%"}}><Topbar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
   return <><div style={{display:"flex",minHeight:"100vh",alignItems:"flex-start"}}><Sidebar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
