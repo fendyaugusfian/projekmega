@@ -2480,9 +2480,19 @@ const RESOURCE_TAG_COLORS = {
 };
 function getResourceTagStyle(tag) {
   if (RESOURCE_TAG_COLORS[tag]) return RESOURCE_TAG_COLORS[tag];
-  let hash=0; for(let i=0;i<tag.length;i++) hash=(hash*31+tag.charCodeAt(i))>>>0;
-  const palettes=Object.values(RESOURCE_TAG_COLORS);
-  return palettes[hash%palettes.length];
+
+  // 🔥 hash dari string
+  let hash = 0;
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // 🔥 generate warna HSL
+  const hue = hash % 360;
+  const bg = `hsl(${hue}, 70%, 92%)`;
+  const color = `hsl(${hue}, 50%, 35%)`;
+
+  return { bg, color };
 }
 function loadResources() {
   try { const s=window._resourcesData; if(s){const p=JSON.parse(s);if(Array.isArray(p))return p;} } catch(e){}
@@ -3259,55 +3269,90 @@ function RangeSettingsPanel() {
   </div>;
 }
 
-function DataManagement({ projects, setProjects }) {
+function DataManagement({ projects, setProjects, tags, setTags, expenses })
   const [status, setStatus] = useState("");
   const [importing, setImporting] = useState(false);
   const fileRef = useRef(null);
 
-  const exportData = () => {
-    try {
-      const blob = new Blob([JSON.stringify(projects, null, 2)], {type:"application/json"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `project-cards-${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      setStatus("✓ Export berhasil");
-      setTimeout(()=>setStatus(""), 3000);
-    } catch(e) {
-      setStatus("✕ Gagal export");
-      setTimeout(()=>setStatus(""), 3000);
-    }
-  };
+	const exportData = () => {
+	  try {
+		const data = {
+		  projects,
+		  tags,
+		  expenses
+		};
 
-  const importData = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
-        if (!Array.isArray(parsed)) throw new Error("Format tidak valid");
-        const existing = window._projectData ? JSON.parse(window._projectData) : [];
-        const existingIds = new Set(existing.map(p=>p.id));
-        const newProjects = parsed.filter(p=>!existingIds.has(p.id));
-        const merged = [...existing, ...newProjects];
-        setProjects(merged);
-        setStatus(`✓ ${newProjects.length} proyek baru ditambahkan.`);
-        setTimeout(()=>setStatus(""), 5000);
-      } catch(err) {
-        setStatus("✕ File tidak valid. Pastikan format JSON benar.");
-        setTimeout(()=>setStatus(""), 4000);
-      }
-      setImporting(false);
-      if (fileRef.current) fileRef.current.value = "";
-    };
-    reader.readAsText(file);
-  };
+		const blob = new Blob([JSON.stringify(data, null, 2)], {
+		  type: "application/json"
+		});
+
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+
+		a.href = url;
+		a.download = `project-cards-${new Date().toISOString().slice(0,10)}.json`;
+
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+
+		URL.revokeObjectURL(url);
+
+		setStatus("✓ Export berhasil");
+		setTimeout(()=>setStatus(""), 3000);
+	  } catch(e) {
+		setStatus("✕ Gagal export");
+		setTimeout(()=>setStatus(""), 3000);
+	  }
+
+	const importData = (e) => {
+	  const file = e.target.files?.[0];
+	  if (!file) return;
+
+	  setImporting(true);
+	  const reader = new FileReader();
+
+	  reader.onload = (ev) => {
+		try {
+		  const parsed = JSON.parse(ev.target.result);
+
+		  let incomingProjects = [];
+		  let incomingTags = [];
+
+		  if (Array.isArray(parsed)) {
+			incomingProjects = parsed;
+		  } else {
+			incomingProjects = parsed.projects || [];
+			incomingTags = parsed.tags || [];
+		  }
+
+		  const existing = projects;
+		  const existingIds = new Set(existing.map(p => p.id));
+
+		  const newProjects = incomingProjects.filter(p => !existingIds.has(p.id));
+		  const merged = [...existing, ...newProjects];
+
+		  setProjects(merged);
+
+		  // 🔥 MERGE TAGS
+		  if (incomingTags.length) {
+			setTags(prev => [...new Set([...prev, ...incomingTags])]);
+		  }
+
+		  setStatus(`✓ ${newProjects.length} proyek baru ditambahkan.`);
+		  setTimeout(()=>setStatus(""), 5000);
+
+		} catch(err) {
+		  setStatus("✕ File tidak valid. Pastikan format JSON benar.");
+		  setTimeout(()=>setStatus(""), 4000);
+		}
+
+		setImporting(false);
+		if (fileRef.current) fileRef.current.value = "";
+	  };
+
+	  reader.readAsText(file);
+	};
 
   const secBtn = {fontSize:13,padding:"8px 18px",borderRadius:8,cursor:"pointer",display:"flex",alignItems:"center",gap:8};
 
@@ -3427,7 +3472,14 @@ function SettingsPage({ projects, setProjects }) {
       <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:16}}>Export semua proyek ke file JSON, atau import dari file JSON yang sudah diexport sebelumnya.</div>
       <DataManagement projects={projects} setProjects={setProjects}/>
     </div>
-
+	{/* Tag Settings */}
+	<div style={sectionStyle}>
+	  <div style={{fontWeight:500,fontSize:14,marginBottom:4}}>Tag</div>
+	  <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:20}}>
+		Tambah, hapus, atau ubah tag yang digunakan di Resources.
+	  </div>
+	  <TagSettings tags={tags} setTags={setTags}/>
+	</div>
     {/* Expense Categories */}
     <div style={sectionStyle}>
       <div style={{fontWeight:500,fontSize:14,marginBottom:4}}>Kategori Expenses</div>
@@ -3564,7 +3616,165 @@ function ExpenseCategorySettings() {
   </div>;
 }
 
+function TagSettings({ tags, setTags }) {
+  const [newTag, setNewTag] = useState("");
+  const [editingIdx, setEditingIdx] = useState(null);
+  const [editVal, setEditVal] = useState("");
+  const [saved, setSaved] = useState(false);
+  const toastTimer = useRef(null);
+  const editInputRef = useRef(null);
 
+  const flash = () => {
+    setSaved(true);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setSaved(false), 1800);
+  };
+
+  const update = (next) => {
+    setTags(next);
+    flash();
+  };
+
+  const add = () => {
+    const val = newTag.trim();
+    if (!val || tags.includes(val)) return;
+    update([...tags, val]);
+    setNewTag("");
+  };
+
+  const remove = (i) => {
+    if (tags.length <= 1) return;
+    setEditingIdx(null);
+    update(tags.filter((_, idx) => idx !== i));
+  };
+
+  const startEdit = (i) => {
+    setEditingIdx(i);
+    setEditVal(tags[i]);
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  };
+
+  const commitEdit = () => {
+    const val = editVal.trim();
+    if (!val || (tags.includes(val) && val !== tags[editingIdx])) {
+      setEditingIdx(null);
+      return;
+    }
+    const next = [...tags];
+    next[editingIdx] = val;
+    update(next);
+    setEditingIdx(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingIdx(null);
+    setEditVal("");
+  };
+
+  const moveUp = (i) => {
+    if (i === 0) return;
+    const next = [...tags];
+    [next[i - 1], next[i]] = [next[i], next[i - 1]];
+    update(next);
+  };
+
+  const moveDown = (i) => {
+    if (i === tags.length - 1) return;
+    const next = [...tags];
+    [next[i], next[i + 1]] = [next[i + 1], next[i]];
+    update(next);
+  };
+
+  const inpStyle = {
+    fontSize: 13,
+    padding: "4px 10px",
+    border: "1.5px solid #000",
+    borderRadius: 6,
+    background: "var(--color-background-primary)",
+    color: "var(--color-text-primary)",
+    outline: "none",
+    minWidth: 0
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+        {tags.map((tag, i) => {
+          const isEditing = editingIdx === i;
+
+          return (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* Up/down */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <button onClick={() => moveUp(i)} disabled={i === 0}
+                  style={{ padding: "1px 4px", border: "none", background: "transparent", cursor: i === 0 ? "default" : "pointer", color: i === 0 ? "#ddd" : "var(--color-text-secondary)", fontSize: 10 }}>
+                  ▲
+                </button>
+                <button onClick={() => moveDown(i)} disabled={i === tags.length - 1}
+                  style={{ padding: "1px 4px", border: "none", background: "transparent", cursor: i === tags.length - 1 ? "default" : "pointer", color: i === tags.length - 1 ? "#ddd" : "var(--color-text-secondary)", fontSize: 10 }}>
+                  ▼
+                </button>
+              </div>
+
+              {/* Tag text / input */}
+              {isEditing ? (
+                <input
+                  ref={editInputRef}
+                  value={editVal}
+                  onChange={(e) => setEditVal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  style={{ ...inpStyle, width: 140 }}
+                />
+              ) : (
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  borderRadius: 20,
+                  padding: "3px 12px",
+                  border: "1px solid var(--color-border-secondary)"
+                }}>
+                  {tag}
+                </span>
+              )}
+
+              {/* Actions */}
+              {isEditing ? (
+                <>
+                  <button onClick={commitEdit}>✔</button>
+                  <button onClick={cancelEdit}>✕</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => startEdit(i)}>Edit</button>
+                  <button onClick={() => remove(i)} disabled={tags.length <= 1}>Delete</button>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add new */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          value={newTag}
+          onChange={(e) => setNewTag(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder="Nama tag baru..."
+          style={{ flex: 1, padding: "7px 10px", borderRadius: 6 }}
+        />
+        <button onClick={add} disabled={!newTag.trim() || tags.includes(newTag.trim())}>
+          + Tambah
+        </button>
+      </div>
+
+      {saved && <div style={{ fontSize: 12, color: "var(--color-text-success)", marginTop: 8 }}>✓ Tersimpan</div>}
+    </div>
+  );
+}
 
 function loadExpenses() {
   try { const s=window._expensesData; if(s){const p=JSON.parse(s);if(p.length>0)return p;} } catch(e){}
@@ -4396,4 +4606,5 @@ const content = <div style={{flex:1,padding:"1.5rem",overflowY:"auto",minHeight:
   if (topbar) return <><div style={{display:"flex",flexDirection:"column",height:"100%"}}><Topbar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
   return <><div style={{display:"flex",minHeight:"100vh",alignItems:"flex-start"}}><Sidebar active={activePage} onSelect={setActivePage} topbar={topbar} onToggle={()=>setTopbar(v=>!v)}/>{content}</div>{modal}{showImport&&<ImportSheetsModal onParsed={handleParsed} onClose={()=>setShowImport(false)}/>}</>;
 }
+
 
