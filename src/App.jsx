@@ -3269,7 +3269,7 @@ function RangeSettingsPanel() {
   </div>;
 }
 
-function DataManagement({ projects, setProjects, tags, setTags, expenses })
+function DataManagement({ projects, setProjects, tags, setTags, expenses }){
   const [status, setStatus] = useState("");
   const [importing, setImporting] = useState(false);
   const fileRef = useRef(null);
