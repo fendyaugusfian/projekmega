@@ -3216,7 +3216,8 @@ function RangeSettingsPanel() {
   const tagSt = {display:"inline-flex",alignItems:"center",gap:5,background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:20,padding:"3px 10px 3px 12px",fontSize:12,color:"var(--color-text-primary)",marginBottom:6,marginRight:6};
   const delBtn = {background:"none",border:"none",cursor:"pointer",color:"#f87171",fontSize:14,lineHeight:1,padding:"0 2px"};
 
-  return <div>
+  return (
+  <div>
     {saved&&<div style={{fontSize:12,color:"#166534",background:"#f0fdf4",border:"0.5px solid #86efac",borderRadius:6,padding:"5px 12px",marginBottom:12,display:"inline-block"}}>✓ Tersimpan</div>}
 
     {/* Area Ranges */}
@@ -3266,8 +3267,8 @@ function RangeSettingsPanel() {
       }
     </div>
     </div>
-  </div>;
-}
+ </div>
+);
 
 function DataManagement({ projects, setProjects, tags, setTags, expenses }){
   const [status, setStatus] = useState("");
