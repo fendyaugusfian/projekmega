@@ -3303,7 +3303,7 @@ function DataManagement({ projects, setProjects, tags, setTags, expenses }){
 	  } catch(e) {
 		setStatus("✕ Gagal export");
 		setTimeout(()=>setStatus(""), 3000);
-	  }
+	  }};
 
 	const importData = (e) => {
 	  const file = e.target.files?.[0];
@@ -3372,7 +3372,7 @@ function DataManagement({ projects, setProjects, tags, setTags, expenses }){
     <div style={{marginTop:10,fontSize:11,color:"var(--color-text-secondary)"}}>Import akan menambahkan proyek baru tanpa menghapus data yang sudah ada. ID yang sama akan dilewati.</div>
   </div>;
 }
-}
+
 
 function SettingsPage({ projects, setProjects, tags, setTags }){
   const [hex, setHex] = useState(()=>window._accentColor||DEFAULT_ACCENT);
