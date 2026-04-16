@@ -3269,7 +3269,7 @@ function RangeSettingsPanel() {
   </div>;
 }
 
-function DataManagement({ projects, setProjects, tags, setTags, expenses }){
+function DataManagement({ projects, setProjects, tags, setTags, expenses, setExpenses }){
   const [status, setStatus] = useState("");
   const [importing, setImporting] = useState(false);
   const fileRef = useRef(null);
@@ -3471,7 +3471,14 @@ function SettingsPage({ projects, setProjects, tags, setTags }){
     <div style={sectionStyle}>
       <div style={{fontWeight:500,fontSize:14,marginBottom:4}}>Data</div>
       <div style={{fontSize:12,color:"var(--color-text-secondary)",marginBottom:16}}>Export semua proyek ke file JSON, atau import dari file JSON yang sudah diexport sebelumnya.</div>
-      <DataManagement projects={projects} setProjects={setProjects}/>
+		<DataManagement
+		  projects={projects}
+		  setProjects={setProjects}
+		  tags={tags}
+		  setTags={setTags}
+		  expenses={expenses}
+		  setExpenses={setExpenses}
+		/>
     </div>
 	{/* Tag Settings */}
 	<div style={sectionStyle}>
@@ -4415,6 +4422,7 @@ function ImportSheetsModal({onParsed, onClose}) {
 export default function App() {
 const [projects, setProjects] = useState(seedData);
 const [tags, setTags] = useState([]);
+const [expenses, setExpenses] = useState([]);
 const [loaded, setLoaded] = useState(false);
 const [mode,setMode] = useState("list");
 const [editing,setEditing] = useState(null);
