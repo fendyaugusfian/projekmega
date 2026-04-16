@@ -3190,85 +3190,198 @@ function RangeSettingsPanel() {
   const [durasiRanges, setDurasiRanges] = useState(loadDurasiRanges);
   const [addingArea, setAddingArea] = useState(false);
   const [addingDurasi, setAddingDurasi] = useState(false);
-  const [areaMin, setAreaMin] = useState(""); const [areaMax, setAreaMax] = useState("");
+  const [areaMin, setAreaMin] = useState("");
+  const [areaMax, setAreaMax] = useState("");
   const [durasiMax, setDurasiMax] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const flash = () => { setSaved(true); setTimeout(()=>setSaved(false), 1800); };
+  const flash = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+  };
 
-  const updateArea = r => { const sorted=[...r].sort((a,b)=>a[0]-b[0]); setAreaRanges(sorted); saveAreaRanges(sorted); flash(); };
-  const updateDurasi = r => { setDurasiRanges(r); saveDurasiRanges(r); flash(); };
+  const updateArea = (r) => {
+    const sorted = [...r].sort((a, b) => a[0] - b[0]);
+    setAreaRanges(sorted);
+    saveAreaRanges(sorted);
+    flash();
+  };
+
+  const updateDurasi = (r) => {
+    setDurasiRanges(r);
+    saveDurasiRanges(r);
+    flash();
+  };
 
   const addAreaRange = () => {
-    const mn=parseInt(areaMin), mx=parseInt(areaMax);
-    if(!isNaN(mn)&&!isNaN(mx)&&mn<mx) { updateArea([...areaRanges,[mn,mx]]); setAreaMin(""); setAreaMax(""); setAddingArea(false); }
+    const mn = parseInt(areaMin);
+    const mx = parseInt(areaMax);
+
+    if (!isNaN(mn) && !isNaN(mx) && mn < mx) {
+      updateArea([...areaRanges, [mn, mx]]);
+      setAreaMin("");
+      setAreaMax("");
+      setAddingArea(false);
+    }
   };
+
   const addDurasiRange = () => {
-    const mx=parseInt(durasiMax);
-    if(!isNaN(mx)&&mx>0) { const last=durasiRanges.length>0?durasiRanges[durasiRanges.length-1][1]:0; updateDurasi([...durasiRanges,[last+1,mx]]); setDurasiMax(""); setAddingDurasi(false); }
+    const mx = parseInt(durasiMax);
+
+    if (!isNaN(mx) && mx > 0) {
+      const last =
+        durasiRanges.length > 0
+          ? durasiRanges[durasiRanges.length - 1][1]
+          : 0;
+
+      updateDurasi([...durasiRanges, [last + 1, mx]]);
+      setDurasiMax("");
+      setAddingDurasi(false);
+    }
   };
-  const resetArea = () => { updateArea([...DEFAULT_AREA_RANGES]); };
-  const resetDurasi = () => { updateDurasi([...DEFAULT_DURASI_RANGES]); };
 
-  const durasiLabel = ([mnM,mxM]) => mnM===0?`≤ ${mxM} bulan`:mnM===mxM?`${mnM} bulan`:`${mnM} – ${mxM} bulan`;
+  const resetArea = () => updateArea([...DEFAULT_AREA_RANGES]);
+  const resetDurasi = () => updateDurasi([...DEFAULT_DURASI_RANGES]);
 
-  const subTitle = {fontSize:12,fontWeight:600,color:"var(--color-text-secondary)",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8};
-  const tagSt = {display:"inline-flex",alignItems:"center",gap:5,background:"var(--color-background-secondary)",border:"0.5px solid var(--color-border-tertiary)",borderRadius:20,padding:"3px 10px 3px 12px",fontSize:12,color:"var(--color-text-primary)",marginBottom:6,marginRight:6};
-  const delBtn = {background:"none",border:"none",cursor:"pointer",color:"#f87171",fontSize:14,lineHeight:1,padding:"0 2px"};
+  const durasiLabel = ([mnM, mxM]) =>
+    mnM === 0
+      ? `≤ ${mxM} bulan`
+      : mnM === mxM
+      ? `${mnM} bulan`
+      : `${mnM} – ${mxM} bulan`;
+
+  const subTitle = {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "var(--color-text-secondary)",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    marginBottom: 8,
+  };
+
+  const tagSt = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    background: "var(--color-background-secondary)",
+    border: "0.5px solid var(--color-border-tertiary)",
+    borderRadius: 20,
+    padding: "3px 10px 3px 12px",
+    fontSize: 12,
+    color: "var(--color-text-primary)",
+    marginBottom: 6,
+    marginRight: 6,
+  };
+
+  const delBtn = {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#f87171",
+    fontSize: 14,
+    lineHeight: 1,
+    padding: "0 2px",
+  };
 
   return (
-  <div>
-    {saved&&<div style={{fontSize:12,color:"#166534",background:"#f0fdf4",border:"0.5px solid #86efac",borderRadius:6,padding:"5px 12px",marginBottom:12,display:"inline-block"}}>✓ Tersimpan</div>}
-
-    {/* Area Ranges */}
-    <div style={{marginBottom:20}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-        <span style={subTitle}>Range Area (m²)</span>
-        <button onClick={resetArea} style={{fontSize:11,padding:"3px 10px",color:"var(--color-text-secondary)",borderColor:"var(--color-border-tertiary)",borderRadius:6}}>Reset default</button>
-      </div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:0}}>
-        {areaRanges.map(([mn,mx],i)=><span key={i} style={tagSt}>
-          {mn} – {mx}
-          <button style={delBtn} onClick={()=>updateArea(areaRanges.filter((_,j)=>j!==i))}>×</button>
-        </span>)}
-      </div>
-      {addingArea
-        ? <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:8}}>
-            <input value={areaMin} onChange={e=>setAreaMin(e.target.value)} placeholder="Min" style={{width:72,fontSize:13,padding:"5px 8px",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}}/>
-            <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>–</span>
-            <input value={areaMax} onChange={e=>setAreaMax(e.target.value)} placeholder="Max" style={{width:72,fontSize:13,padding:"5px 8px",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}} onKeyDown={e=>{if(e.key==="Enter")addAreaRange();}}/>
-            <button onClick={addAreaRange} style={{fontSize:12,padding:"5px 12px",background:"#111",color:"#fff",borderColor:"#111",borderRadius:6}}>Tambah</button>
-            <button onClick={()=>{setAddingArea(false);setAreaMin("");setAreaMax("");}} style={{fontSize:12,padding:"5px 10px",borderRadius:6}}>Batal</button>
-          </div>
-        : <button onClick={()=>setAddingArea(true)} style={{fontSize:12,padding:"5px 12px",marginTop:8}}>+ Tambah Range</button>
-      }
-    </div>
-
-    {/* Durasi Ranges */}
     <div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-        <span style={subTitle}>Range Durasi (bulan)</span>
-        <button onClick={resetDurasi} style={{fontSize:11,padding:"3px 10px",color:"var(--color-text-secondary)",borderColor:"var(--color-border-tertiary)",borderRadius:6}}>Reset default</button>
-      </div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:0}}>
-        {durasiRanges.map((r,i)=><span key={i} style={tagSt}>
-          {durasiLabel(r)}
-          <button style={delBtn} onClick={()=>updateDurasi(durasiRanges.filter((_,j)=>j!==i))}>×</button>
-        </span>)}
-      </div>
-      {addingDurasi
-        ? <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginTop:8}}>
-            <span style={{fontSize:12,color:"var(--color-text-secondary)"}}>Tambah s/d bulan ke-</span>
-            <input value={durasiMax} onChange={e=>setDurasiMax(e.target.value)} placeholder="13" style={{width:72,fontSize:13,padding:"5px 8px",border:"0.5px solid var(--color-border-secondary)",borderRadius:6}} onKeyDown={e=>{if(e.key==="Enter")addDurasiRange();}}/>
-            <button onClick={addDurasiRange} style={{fontSize:12,padding:"5px 12px",background:"#111",color:"#fff",borderColor:"#111",borderRadius:6}}>Tambah</button>
-            <button onClick={()=>{setAddingDurasi(false);setDurasiMax("");}} style={{fontSize:12,padding:"5px 10px",borderRadius:6}}>Batal</button>
+      {saved && (
+        <div
+          style={{
+            fontSize: 12,
+            color: "#166534",
+            background: "#f0fdf4",
+            border: "0.5px solid #86efac",
+            borderRadius: 6,
+            padding: "5px 12px",
+            marginBottom: 12,
+            display: "inline-block",
+          }}
+        >
+          ✓ Tersimpan
+        </div>
+      )}
+
+      {/* Area */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={subTitle}>Range Area (m²)</span>
+          <button onClick={resetArea}>Reset default</button>
+        </div>
+
+        <div>
+          {areaRanges.map(([mn, mx], i) => (
+            <span key={i} style={tagSt}>
+              {mn} – {mx}
+              <button onClick={() => updateArea(areaRanges.filter((_, j) => j !== i))}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {addingArea ? (
+          <div style={{ marginTop: 8 }}>
+            <input value={areaMin} onChange={(e) => setAreaMin(e.target.value)} placeholder="Min" />
+            <input value={areaMax} onChange={(e) => setAreaMax(e.target.value)} placeholder="Max" />
+            <button onClick={addAreaRange}>Tambah</button>
+            <button
+              onClick={() => {
+                setAddingArea(false);
+                setAreaMin("");
+                setAreaMax("");
+              }}
+            >
+              Batal
+            </button>
           </div>
-        : <button onClick={()=>setAddingDurasi(true)} style={{fontSize:12,padding:"5px 12px",marginTop:8}}>+ Tambah Range</button>
-      }
+        ) : (
+          <button onClick={() => setAddingArea(true)}>+ Tambah Range</button>
+        )}
+      </div>
+
+      {/* Durasi */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={subTitle}>Range Durasi (bulan)</span>
+          <button onClick={resetDurasi}>Reset default</button>
+        </div>
+
+        <div>
+          {durasiRanges.map((r, i) => (
+            <span key={i} style={tagSt}>
+              {durasiLabel(r)}
+              <button onClick={() => updateDurasi(durasiRanges.filter((_, j) => j !== i))}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {addingDurasi ? (
+          <div style={{ marginTop: 8 }}>
+            <input
+              value={durasiMax}
+              onChange={(e) => setDurasiMax(e.target.value)}
+              placeholder="Max"
+            />
+            <button onClick={addDurasiRange}>Tambah</button>
+            <button
+              onClick={() => {
+                setAddingDurasi(false);
+                setDurasiMax("");
+              }}
+            >
+              Batal
+            </button>
+          </div>
+        ) : (
+          <button onClick={() => setAddingDurasi(true)}>+ Tambah Range</button>
+        )}
+      </div>
     </div>
-    </div>
- </div>
-);
+  );
+}
 
 function DataManagement({ projects, setProjects, tags, setTags, expenses }){
   const [status, setStatus] = useState("");
